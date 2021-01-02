@@ -59,7 +59,7 @@ VBox{
 
 
 Button{
-
+    -fx-background-radius: 0px;
 }
 
 .protocolButton{
@@ -67,7 +67,6 @@ Button{
     -fx-font-size: 15;
     -fx-pref-width: 100px;
     -fx-pref-height: 30px;
-    -fx-background-radius: 0px;
     -fx-background-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -99,5 +98,9 @@ Button{
     -fx-scale-z: 1.1;
     -fx-background-color: #00ecff;
     /*-fx-text-fill: #161616;*/
+}
+
+TextField{
+    -fx-background-radius: 0px;
 }
 

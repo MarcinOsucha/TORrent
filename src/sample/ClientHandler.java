@@ -1,7 +1,13 @@
 package sample;
 
+import javafx.application.Application;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+
 import java.io.*;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class ClientHandler implements Runnable {
 
@@ -21,55 +27,58 @@ public class ClientHandler implements Runnable {
             DataInputStream dataInputStream = new DataInputStream(is);
             //reading two messages (file name and size)
             String fileName = dataInputStream.readUTF();
+            String userHomeFolder = System.getProperty("user.home") + "\\Desktop\\TORrent\\TCP\\" + serverPort + "\\";
+            File receivedFile = new File(userHomeFolder + fileName);
             int fileSize = Integer.parseInt(dataInputStream.readUTF());
+            String receivedHash = dataInputStream.readUTF();
 
             //geting file
             byte [] bytearray = new byte [fileSize];
-            String userHomeFolder = System.getProperty("user.home") + "\\Desktop\\TORrent\\TCP\\" + serverPort + "\\";
-            File receivedFile = new File(userHomeFolder + fileName);
             FileOutputStream fos = new FileOutputStream(receivedFile);
             BufferedOutputStream bos = new BufferedOutputStream(fos);
 
-            //No of bytes read in one read() call
             int bytesRead = 0;
-
-            while((bytesRead=is.read(bytearray))!=-1)
+            while((bytesRead=is.read(bytearray))!=-1) {
                 bos.write(bytearray, 0, bytesRead);
+            }
 
             bos.flush();
+            bos.close();
+            fos.close();
+            dataInputStream.close();
+            is.close();
             socket.close();
 
-            System.out.println("File saved successfully!");
+            MessageDigest complete = MessageDigest.getInstance("MD5");
 
+            String hex = checksum(receivedFile, complete);
+            System.out.println(receivedHash + " own");
+            System.out.println(hex + " received");
+
+            System.out.println("File saved successfully!");
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String checksum(File file, MessageDigest md) throws IOException {
+
+        try (InputStream fis = new FileInputStream(file)) {
+            byte[] buffer = new byte[1024];
+            int nread;
+            while ((nread = fis.read(buffer)) != -1) {
+                md.update(buffer, 0, nread);
+            }
         }
 
-//        try {
-//            int filesize=1022386;
-//            int bytesRead;
-//            int currentTot = 0;
-//            byte [] bytearray = new byte [filesize];
-//            InputStream is = socket.getInputStream();
-//            FileOutputStream fos = new FileOutputStream("copy.doc");
-//            BufferedOutputStream bos = new BufferedOutputStream(fos);
-//            bytesRead = is.read(bytearray,0,bytearray.length);
-//            currentTot = bytesRead;
-//            do {
-//                bytesRead = is.read(bytearray, currentTot, (bytearray.length-currentTot));
-//                if(bytesRead >= 0)
-//                    currentTot += bytesRead;
-//            } while(bytesRead > -1);
-//            bos.write(bytearray, 0 , currentTot);
-//            bos.flush();
-//            bos.close();
-//            socket.close();
-//
-//
-//        } catch (FileNotFoundException fileNotFoundException) {
-//            fileNotFoundException.printStackTrace();
-//        } catch (IOException ioException) {
-//            ioException.printStackTrace();
-//        }
+        // bytes to hex
+        StringBuilder result = new StringBuilder();
+        for (byte b : md.digest()) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
+
     }
 }

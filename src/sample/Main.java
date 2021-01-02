@@ -1,6 +1,7 @@
 package sample;
 
 import javafx.application.Application;
+import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -8,13 +9,16 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -129,6 +133,13 @@ public class Main extends Application {
         primaryStage.setMinHeight(500);
         primaryStage.setMinWidth(600);
 
+        primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent e) {
+                System.exit(0);
+            }
+        });
+
         primaryStage.show();
 
         //loading CSS
@@ -161,7 +172,6 @@ public class Main extends Application {
                     e.printStackTrace();
                 }
             }).start();
-//            tcp_server.waitForClients();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -204,6 +214,8 @@ public class Main extends Application {
         sendGridPane.setHgap(20);
         ColumnConstraints col = new ColumnConstraints();
         col.setPercentWidth(50);
+//        col.setHgrow(Priority.ALWAYS) ; // allow column to grow
+//        col.setFillWidth(true);
 
         sendGridPane.getColumnConstraints().addAll(col,col);
 
@@ -213,18 +225,17 @@ public class Main extends Application {
         sendGridPane.add(receiverPort, 0,0);
 
         Button acceptButton = new Button("Accept");
+        acceptButton.setStyle("-fx-background-color: #00ecff; -fx-font-size: 25; -fx-text-fill: white;");
+        acceptButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         sendGridPane.add(acceptButton,1,0,2,2);
 
         Label label = new Label("Choose a file You want to send");
-        label.setStyle(
-                "-fx-text-fill: white;\n" +
-                "    -fx-font-size: 18;");
+        label.setStyle("-fx-text-fill: white; -fx-font-size: 18;");
         sendGridPane.add(label, 0,1);
 
         String pathToFiles;
         if (actualProtocol.equals("TCP")){
-//            pathToFiles = System.getProperty("user.home")+ "\\Desktop\\TCP\\" + tcp_server.getPortNumber();
-            pathToFiles = System.getProperty("user.home")+ "\\Desktop\\TORrent\\TCP\\51140";
+            pathToFiles = System.getProperty("user.home")+ "\\Desktop\\TORrent\\TCP\\" + tcp_server.getPortNumber();
             System.out.println(pathToFiles);
         } else {
             pathToFiles = "";
@@ -232,9 +243,9 @@ public class Main extends Application {
 
         TableView<File> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.prefWidthProperty().bind(sendGridPane.widthProperty());
+//        table.prefWidthProperty().bind(sendGridPane.widthProperty());
         TableColumn<File, String> column = new TableColumn<>("Name");
-        column.prefWidthProperty().bind(table.widthProperty());
+//        column.prefWidthProperty().bind(table.widthProperty());
         column.setCellValueFactory(new PropertyValueFactory<File, String>("name"));
 //        column1.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<File, String>, ObservableValue<String>>() {
 //            @Override
@@ -245,16 +256,8 @@ public class Main extends Application {
         table.getColumns().add(column);
         File dir = new File(pathToFiles);
         File[] files = dir.listFiles();
-        MyFile[] myFiles = new MyFile[files.length];
-        int i = 0;
-        for (File f : files){
-            myFiles[i] = new MyFile(f);
-//            System.out.println(f.getName());
-            i++;
-        }
 
         table.getItems().addAll(files);
-//        table.getItems().addAll(dir.listFiles());
         sendGridPane.add(table,0,2,2,1);
 
         Button backButton = new Button("Back");
@@ -278,8 +281,7 @@ public class Main extends Application {
                 alert.showAndWait();
             }
         });
-        GridPane.setFillWidth(acceptButton, true);
-        GridPane.setFillHeight(acceptButton, true);
+        sendGridPane.setGridLinesVisible(true);
         vBox.getChildren().add(sendGridPane);
     }
 
@@ -294,14 +296,25 @@ public class Main extends Application {
         }
     }
 
+//    void showSavedFileAlert(File file){
+//        Alert alert = new Alert(
+//                Alert.AlertType.INFORMATION,
+//                "You just got a file.\n" +
+//                        file.getName(),
+//                ButtonType.OK);
+//        alert.showAndWait();
+//    }
+
     private void exitAction() {
-        try {
-            tcp_server.closeServer();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        Stage stage = (Stage) exitButton.getScene().getWindow();
-        stage.close();
+//        try {
+//            tcp_server.closeServer();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+        System.exit(0);
+
+//        Stage stage = (Stage) exitButton.getScene().getWindow();
+//        stage.close();
 
         //SOCKET IS NOT BEING CLOSED!!!
         //tcp_server.closeSocket();

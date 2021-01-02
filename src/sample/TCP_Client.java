@@ -2,70 +2,87 @@ package sample;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class TCP_Client {
 
     Socket socket;
-//    private PrintWriter writer;
-//    private BufferedReader reader;
 
-    public TCP_Client(int portNumber, File file){
+    public TCP_Client(int portNumber, File file) {
 
         System.out.println("Sending TCP Client start.");
 
         try {
             socket = new Socket("127.0.0.1", portNumber);
-//            writer = new PrintWriter(socket.getOutputStream(),true);
-//            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
             System.out.println("Socket created on port " + portNumber + ".");
             sendFile(file);
-        }catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         System.out.println("TCP Client close.");
     }
+
     public void sendFile(File selectedFile) {
         try {
-            //sending file name and size
-//            writer.println(selectedFile.getName());
-//            writer.println((int)selectedFile.length());
             OutputStream os = socket.getOutputStream();
+            FileInputStream fis = new FileInputStream(selectedFile);
+            BufferedInputStream bis = new BufferedInputStream(fis);
             DataOutputStream dataOutputStream = new DataOutputStream(os);
+
+            //sending file name and size
             dataOutputStream.writeUTF(selectedFile.getName());
             dataOutputStream.writeUTF(String.valueOf(selectedFile.length()));
 
-            byte [] bytearray = new byte [(int)selectedFile.length()];
-
-            FileInputStream fis = new FileInputStream(selectedFile);
-            BufferedInputStream bis = new BufferedInputStream(fis);
-            bis.read(bytearray,0,bytearray.length);
-
-            long fileLength = selectedFile.length();
-            long current = 0;
-
-//            long start = System.nanoTime();
+            //sending MD5 hash
+            MessageDigest complete = MessageDigest.getInstance("MD5");
+            String result = checksum(selectedFile, complete);
+            dataOutputStream.writeUTF(result);
+            System.out.println(result);
 
             //sending file
-            while(current!=fileLength){
-                int size = 10000;
-                if(fileLength - current >= size)
-                    current += size;
-                else{
-                    size = (int)(fileLength - current);
-                    current = fileLength;
-                }
-                bis.read(bytearray, 0, size);
-                os.write(bytearray);
-                System.out.print("Sending file ... "+(current*100)/fileLength+"% complete!");
-            }
+            byte[] bytearray = new byte[(int) selectedFile.length()];
+            bis.read(bytearray, 0, bytearray.length);
+            os.write(bytearray, 0, bytearray.length);
+
+            String hex = checksum(selectedFile, complete);
+            System.out.println(hex);
 
             os.flush();
+            os.close();
+            fis.close();
+            bis.close();
+            dataOutputStream.close();
             socket.close();
             System.out.println("File sent succesfully!");
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
         }
 
     }
+
+    private static String checksum(File file, MessageDigest md) throws IOException {
+
+        try (InputStream fis = new FileInputStream(file)) {
+            byte[] buffer = new byte[1024];
+            int nread;
+            while ((nread = fis.read(buffer)) != -1) {
+                md.update(buffer, 0, nread);
+            }
+        }
+
+        // bytes to hex
+        StringBuilder result = new StringBuilder();
+        for (byte b : md.digest()) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
+
+    }
+
 }
