@@ -13,10 +13,9 @@ public class TCP_Server {
     private ServerSocket serverSocket;
     Socket socket;
     int serverPort = 10000 + (int)(Math.random() * 50000);
-
+    String userHomeFolder = System.getProperty("user.home");
 
     public TCP_Server() throws IOException {
-        String userHomeFolder = System.getProperty("user.home");
         Paths.get(userHomeFolder, "Desktop", "TORrent\\TCP\\" + serverPort).toFile().mkdir();
         serverSocket = new ServerSocket(serverPort);
 

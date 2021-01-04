@@ -1,6 +1,9 @@
 package sample;
 
 import javafx.application.Application;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -15,6 +18,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Callback;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,15 +28,6 @@ import java.util.regex.Pattern;
 
 public class Main extends Application {
 
-//    @Override
-//    public void start(Stage primaryStage) throws Exception{
-//        Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-//        primaryStage.setTitle("Projekt TORrent");
-//        primaryStage.setScene(new Scene(root, 800, 600));
-//        primaryStage.setMinHeight(500);
-//        primaryStage.setMinWidth(600);
-//        primaryStage.show();
-//    }
     private static String actualProtocol = "TCP";
 
     private Scene scene;
@@ -224,7 +219,7 @@ public class Main extends Application {
         receiverPort.setFocusTraversable(false);
         sendGridPane.add(receiverPort, 0,0);
 
-        Button acceptButton = new Button("Accept");
+        Button acceptButton = new Button("Send");
         acceptButton.setStyle("-fx-background-color: #00ecff; -fx-font-size: 25; -fx-text-fill: white;");
         acceptButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         sendGridPane.add(acceptButton,1,0,2,2);
@@ -236,7 +231,6 @@ public class Main extends Application {
         String pathToFiles;
         if (actualProtocol.equals("TCP")){
             pathToFiles = System.getProperty("user.home")+ "\\Desktop\\TORrent\\TCP\\" + tcp_server.getPortNumber();
-            System.out.println(pathToFiles);
         } else {
             pathToFiles = "";
         }
@@ -278,6 +272,8 @@ public class Main extends Application {
                         "Wrong receiver's port number or file not selected.\n" +
                                 "Type legal port and select file from list.",
                         ButtonType.OK);
+                alert.setHeaderText("Error!");
+                alert.setTitle("Error!");
                 alert.showAndWait();
             }
         });
@@ -286,11 +282,133 @@ public class Main extends Application {
     }
 
     private void changeToDownloadScene() {
+        vBox.getChildren().clear();
+
+        GridPane downloadGridPane = new GridPane();
+        downloadGridPane.setVgap(20);
+
+        ColumnConstraints col = new ColumnConstraints();
+        col.setPercentWidth(33);
+        downloadGridPane.getColumnConstraints().addAll(col,col,col);
+
+        TextField serverPort = new TextField();
+        serverPort.setPromptText("(server port)");
+        serverPort.setFocusTraversable(false);
+        downloadGridPane.add(serverPort, 1,0);
+
+        Button connectButton = new Button("Connect");
+        connectButton.setStyle("-fx-background-color: #00ecff; -fx-font-size: 25; -fx-text-fill: white;");
+        connectButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        downloadGridPane.add(connectButton,1,1);
+        connectButton.setOnAction(e -> {
+            String typedPort = serverPort.getText();
+            Pattern pattern = Pattern.compile("^[0-9]{5}$");
+            Matcher matcher = pattern.matcher(typedPort);
+            if (matcher.find()){
+                connetToServer(Integer.parseInt(typedPort));
+            }
+            else {
+                Alert alert = new Alert(
+                        Alert.AlertType.ERROR,
+                        "Wrong server port format.\n",
+                        ButtonType.OK);
+                alert.showAndWait();
+            }
+        });
+
+        Button backButton = new Button("Back");
+        backButton.setOnAction(e -> setMainMenuPane());
+        downloadGridPane.add(backButton,0,0);
+
+        vBox.getChildren().add(downloadGridPane);
+    }
+
+    TCP_Client tcpClientForDownload;
+    private void connetToServer(int serverPort) {
+        tcpClientForDownload = new TCP_Client(serverPort);
+        String[] namesList = tcpClientForDownload.getFilesList();
+//        System.out.println("in main");
+//        for (int i=0; i< namesList.length; i++){
+//            System.out.println(namesList[i]);
+//        }
+        showDownloadTable(namesList);
+    }
+
+    private void showDownloadTable(String[] namesList) {
+        vBox.getChildren().clear();
+
+        GridPane downloadTableGridPane = new GridPane();
+        downloadTableGridPane.setVgap(20);
+        downloadTableGridPane.setHgap(20);
+
+        ColumnConstraints col = new ColumnConstraints();
+        col.setPercentWidth(50);
+        downloadTableGridPane.getColumnConstraints().addAll(col,col);
+
+        Label label = new Label("Choose a file You want to download");
+        label.setStyle("-fx-text-fill: white; -fx-font-size: 18;");
+        downloadTableGridPane.add(label, 0,0);
+
+        Button acceptButton = new Button("Download");
+        acceptButton.setStyle("-fx-background-color: #00ecff; -fx-font-size: 25; -fx-text-fill: white;");
+        acceptButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        downloadTableGridPane.add(acceptButton,1,0);
+
+        TableView<String> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        TableColumn<String, String> column = new TableColumn<>("Name");
+        column.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<String, String>, ObservableValue<String>>() {
+            @Override
+            public ObservableValue<String> call(TableColumn.CellDataFeatures<String, String> data) {
+                return new ReadOnlyStringWrapper(data.getValue());
+            }
+        });
+        table.getColumns().add(column);
+        table.getItems().addAll(namesList);
+        downloadTableGridPane.add(table,0,1,2,1);
+
+        Button backButton = new Button("Back");
+        backButton.setOnAction(e -> setMainMenuPane());
+        downloadTableGridPane.add(backButton,0,2);
+
+        acceptButton.setOnAction(e -> {
+            String selectedFile = table.getSelectionModel().getSelectedItem();
+            if (selectedFile != null){
+                System.out.println("!= null");
+                tcpClientForDownload.downloadFile(selectedFile, serverPort);
+            } else {
+                Alert alert = new Alert(
+                        Alert.AlertType.ERROR,
+                        "Select a file!",
+                        ButtonType.OK);
+                alert.showAndWait();
+            }
+        });
+
+        vBox.getChildren().add(downloadTableGridPane);
+
     }
 
     private void sendFile(int typedPort, File selectedFile) {
         if(actualProtocol == "TCP"){
-            new TCP_Client(typedPort, selectedFile);
+            TCP_Client client = new TCP_Client(typedPort, "Sending");
+//            System.out.println("main: " + client);
+            if (client.portCorrect){
+                boolean isFileSent = client.sendFile(selectedFile);
+                if (isFileSent){
+                    Alert alert = new Alert(
+                            Alert.AlertType.INFORMATION,
+                            "File sent.",
+                            ButtonType.OK);
+                    alert.showAndWait();
+                }
+            } else {
+                Alert alert = new Alert(
+                        Alert.AlertType.ERROR,
+                        "File transfer filed. Check if typed port is correct.",
+                        ButtonType.OK);
+                alert.showAndWait();
+            }
         } else {
 
         }
@@ -323,16 +441,6 @@ public class Main extends Application {
     }
 
     public static void main(String[] args) {
-
-
-//        Thread tcp_client_thread = new Thread(() -> {
-////            TCP_Client.main(args);
-//            TCP_Client tcp_client = new TCP_Client();
-//        });
-//        tcp_client_thread.start();
-
         launch(args);
-
-
     }
 }
