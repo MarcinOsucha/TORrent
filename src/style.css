@@ -60,6 +60,7 @@ VBox{
 
 Button{
     -fx-background-radius: 0px;
+    -fx-font-family: 'Overpass';
 }
 
 .protocolButton{

@@ -272,8 +272,8 @@ public class Main extends Application {
                         "Wrong receiver's port number or file not selected.\n" +
                                 "Type legal port and select file from list.",
                         ButtonType.OK);
+                alert.setTitle("Host " + serverPort);
                 alert.setHeaderText("Error!");
-                alert.setTitle("Error!");
                 alert.showAndWait();
             }
         });
@@ -312,6 +312,8 @@ public class Main extends Application {
                         Alert.AlertType.ERROR,
                         "Wrong server port format.\n",
                         ButtonType.OK);
+                alert.setTitle("Host " + this.serverPort);
+                alert.setHeaderText("Error!");
                 alert.showAndWait();
             }
         });
@@ -326,12 +328,19 @@ public class Main extends Application {
     TCP_Client tcpClientForDownload;
     private void connetToServer(int serverPort) {
         tcpClientForDownload = new TCP_Client(serverPort);
-        String[] namesList = tcpClientForDownload.getFilesList();
-//        System.out.println("in main");
-//        for (int i=0; i< namesList.length; i++){
-//            System.out.println(namesList[i]);
-//        }
-        showDownloadTable(namesList);
+
+        if (tcpClientForDownload.portCorrect){
+            String[] namesList = tcpClientForDownload.getFilesList();
+            showDownloadTable(namesList);
+        } else{
+            Alert alert = new Alert(
+                    Alert.AlertType.ERROR,
+                    "No server is working on this port.",
+                    ButtonType.OK);
+            alert.setTitle("Host " + this.serverPort);
+            alert.setHeaderText("Error!");
+            alert.showAndWait();
+        }
     }
 
     private void showDownloadTable(String[] namesList) {
@@ -381,6 +390,7 @@ public class Main extends Application {
                         Alert.AlertType.ERROR,
                         "Select a file!",
                         ButtonType.OK);
+                alert.setTitle("Host " + serverPort);
                 alert.showAndWait();
             }
         });
@@ -400,6 +410,8 @@ public class Main extends Application {
                             Alert.AlertType.INFORMATION,
                             "File sent.",
                             ButtonType.OK);
+                    alert.setTitle("Host " + serverPort);
+                    alert.setHeaderText("Success!");
                     alert.showAndWait();
                 }
             } else {
@@ -407,6 +419,8 @@ public class Main extends Application {
                         Alert.AlertType.ERROR,
                         "File transfer filed. Check if typed port is correct.",
                         ButtonType.OK);
+                alert.setTitle("Host " + serverPort);
+                alert.setHeaderText("Error!");
                 alert.showAndWait();
             }
         } else {

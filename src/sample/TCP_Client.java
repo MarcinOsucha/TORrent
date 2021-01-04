@@ -1,6 +1,8 @@
 package sample;
 
 import javafx.application.Application;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.layout.GridPane;
 
 import java.io.*;
@@ -33,12 +35,6 @@ public class TCP_Client {
     }
 
     public boolean sendFile(File selectedFile) {
-//        Alert alertBox = new Alert(Alert.AlertType.INFORMATION, "ok",
-//                ButtonType.OK);
-//        alertBox.setContentText("Are you sure you want to delete this?");
-//        alertBox.initModality(Modality.APPLICATION_MODAL); /* *** */
-//        alertBox.initOwner(scene.getWindow());                         /* *** */
-//        alertBox.showAndWait();
         System.out.println("Send file method start.");
         boolean fileSent = false;
         try {
@@ -99,8 +95,6 @@ public class TCP_Client {
                     progress = Long.toString((current*100)/fileLength);
                     System.out.println("Sending file ... " + progress + "% complete!");
                     progressMaster = Integer.parseInt(progress);
-//                    label.setText(progress);
-//                    sendGridPane.getChildren().get(6).getId();
                 }
             }
 //            stage.close();
@@ -152,11 +146,26 @@ public class TCP_Client {
 
     }
 
+    OutputStream os = null;
+    DataOutputStream dataOutputStream = null;
+    InputStream is = null;
+    DataInputStream dataInputStream = null;
+
     //for download
     public TCP_Client(int port){
         try {
             socket = new Socket("127.0.0.1", port);
             System.out.println("TCP Client for download starts.");
+
+            os = socket.getOutputStream();
+            dataOutputStream = new DataOutputStream(os);
+            is = socket.getInputStream();
+            dataInputStream = new DataInputStream(is);
+            portCorrect = true;
+        } catch (ConnectException e){
+//            e.printStackTrace();
+            System.out.println("No server is working on this port.");
+            portCorrect = false;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -165,30 +174,21 @@ public class TCP_Client {
     public String[] getFilesList() {
         String[] fileNames = new String[0];
         try {
-            OutputStream os = socket.getOutputStream();
-            DataOutputStream dataOutputStream = new DataOutputStream(os);
-
             //inform server that I want to download
             dataOutputStream.writeUTF("I download");
-            System.out.println("Server informed");
+            System.out.println("Server informed.");
 
-            InputStream is = socket.getInputStream();
-            DataInputStream dataInputStream = new DataInputStream(is);
+            //get number of files on server
             int countOfFiles = Integer.parseInt(dataInputStream.readUTF());
 
+            //get file names
             fileNames = new String[countOfFiles];
             for (int i=0; i<countOfFiles; i++){
                 fileNames[i] = dataInputStream.readUTF();
-//                System.out.println(fileNames[i]);
             }
-            System.out.println("I got files list from server");
+            System.out.println("I've got files list from server.");
 
-//            dataInputStream.close();
-//            dataOutputStream.flush();
-//            dataOutputStream.close();
-//            is.close();
-//            os.close();
-            System.out.println("Streams closed");
+            dataOutputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -197,30 +197,49 @@ public class TCP_Client {
 
     public void downloadFile(String selectedFile, int myServerPort) {
         try {
-            System.out.println("I try to create output stream from socket");
-            OutputStream os = socket.getOutputStream();
-            DataOutputStream dataOutputStream = new DataOutputStream(os);
-            System.out.println("Output stream crated");
-
-            //inform server I selected a file
-            dataOutputStream.writeUTF("I selected");
-
             //inform server what file I want to download
             dataOutputStream.writeUTF(selectedFile);
-            System.out.println("Server informed I want to download" + selectedFile);
-
+            System.out.println("Server informed I want to download " + selectedFile + ".");
             File receivedFile = new File(System.getProperty("user.home") + "\\Desktop\\TORrent\\TCP\\" + myServerPort + "\\" + selectedFile);
-            InputStream is = socket.getInputStream();
 
-            byte [] bytearray = new byte [1024];
+            //start downloading
+            byte [] bytearray = new byte [1048576];
             FileOutputStream fos = new FileOutputStream(receivedFile);
             BufferedOutputStream bos = new BufferedOutputStream(fos);
-            System.out.println("I start saving file from server");
-            int bytesRead = 0;
-            while((bytesRead=is.read(bytearray))!=-1) {
+            int bytesRead = 0, overall = 0, remain = -1;
+            long before = System.currentTimeMillis(), start = System.currentTimeMillis();
+            System.out.println("I start downloading file from server...");
+            bos.flush();
+            while((bytesRead=is.read(bytearray)) != -1) {
+                before = System.nanoTime();
                 bos.write(bytearray, 0, bytesRead);
+                long after = System.nanoTime();
+                overall += bytesRead;
+                double speed = (bytesRead / (after-before)) * 1000000000;
+                float sec = (System.currentTimeMillis() - start) / 1000F;
+                if ((remain != (int)(speed/overall)) && (remain != 0) && (sec >= 0.5)) {
+                    System.out.println("Remain " + remain + "s.");
+                    start = System.currentTimeMillis();
+                }
+                remain = (int) (speed / overall);
             }
+            fos.flush();
+            fos.close();
             System.out.println("File saved");
+
+            dataInputStream.close();
+            is.close();
+            System.out.println("Streams closed.");
+
+            Alert alertBox = new Alert(
+                    Alert.AlertType.INFORMATION,
+                    "File " + receivedFile.getName() + " downloaded correctly.",
+                    ButtonType.OK);
+            alertBox.setTitle("Host " + myServerPort);
+//            alertBox.initModality(Modality.APPLICATION_MODAL); /* *** */
+//            alertBox.initOwner(scene.getWindow());                         /* *** */
+            alertBox.setHeaderText("Success!");
+            alertBox.showAndWait();
 
         } catch (IOException e) {
             e.printStackTrace();

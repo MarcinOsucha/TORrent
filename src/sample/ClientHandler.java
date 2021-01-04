@@ -24,12 +24,17 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             InputStream is = socket.getInputStream();
+            OutputStream os = null;
             DataInputStream dataInputStream = new DataInputStream(is);
+            DataOutputStream dataOutputStream = null;
+            //reading transmission type
             String whatYouDoing = dataInputStream.readUTF();
-            //reading two messages (file name and size)
+            BufferedInputStream bis = null;
+            BufferedOutputStream bos = null;
 
             if (whatYouDoing.equals("I send")){
                 System.out.println("Client informed me he is sending.");
+
                 //getting file name
                 String fileName = dataInputStream.readUTF();
                 String userHomeFolder = System.getProperty("user.home") + "\\Desktop\\TORrent\\TCP\\" + serverPort + "\\";
@@ -47,7 +52,7 @@ public class ClientHandler implements Runnable {
                 //geting file
                 byte [] bytearray = new byte [10000000];
                 FileOutputStream fos = new FileOutputStream(receivedFile);
-                BufferedOutputStream bos = new BufferedOutputStream(fos);
+                bos = new BufferedOutputStream(fos);
                 System.out.println("Output streams crated.");
                 int bytesRead = 0, overall = 0, remain = -1;
                 long before = System.currentTimeMillis(), start = System.currentTimeMillis();
@@ -59,11 +64,7 @@ public class ClientHandler implements Runnable {
                     double speed = (bytesRead / (after-before)) * 1000000000;
                     float sec = (System.currentTimeMillis() - start) / 1000F;
                     if ((remain != (int)(speed/overall)) && (remain != 0) && (sec >= 0.5)) {
-                        System.out.println(
-//                            after +" after\n" +
-//                            before +" before\n" +
-//                            "Speed " + speed +"\n" +
-                                "Remain " + remain + "s.");
+                        System.out.println("Remain " + remain + "s.");
                         start = System.currentTimeMillis();
                     }
                     remain = (int) (speed / overall);
@@ -92,15 +93,14 @@ public class ClientHandler implements Runnable {
 
             } else if (whatYouDoing.equals("I download")){
                 System.out.println("Client informed me he want to download");
-                OutputStream os = socket.getOutputStream();
+                os = socket.getOutputStream();
 
                 String myFolder = System.getProperty("user.home") + "\\Desktop\\TORrent\\TCP\\" + serverPort;
                 File dir = new File(myFolder);
 
                 String[] fileNames = dir.list();
-//                System.out.println("Count of files: " + fileNames.length);
 
-                DataOutputStream dataOutputStream = new DataOutputStream(os);
+                dataOutputStream = new DataOutputStream(os);
 
                 //inform client how many files I have
                 dataOutputStream.writeUTF(Integer.toString(fileNames.length));
@@ -109,41 +109,49 @@ public class ClientHandler implements Runnable {
                 for (int i=0; i<fileNames.length; i++){
                     dataOutputStream.writeUTF(fileNames[i]);
                 }
-                System.out.println("I sent to Client files list");
+                System.out.println("I sent to Client files list.");
 
-                dataInputStream.close();
-                dataOutputStream.close();
-                os.close();
-                is.close();
+                String fileName = dataInputStream.readUTF();
+                System.out.println("Client want to download " + fileName);
 
-            } else if (whatYouDoing.equals("I selected")){
-                //get information what file to send
-                System.out.println("I get a file name to send");
-                String fileNameToSend = dataInputStream.readUTF();
-                System.out.println("Client want a file named" + fileNameToSend);
-
-                String myFolder = System.getProperty("user.home") + "\\Desktop\\TORrent\\TCP\\" + serverPort;
-                File fileToSend = new File(myFolder + "\\" + fileNameToSend);
+                File fileToSend = new File(myFolder + "\\" + fileName);
                 FileInputStream fis = new FileInputStream(fileToSend);
-                BufferedInputStream bis = new BufferedInputStream(fis);
-                //send file
-                byte[] bytearray = new byte[(int) fileToSend.length()];
-                bis.read(bytearray, 0, bytearray.length);
-                OutputStream os = socket.getOutputStream();
-                os.write(bytearray, 0, bytearray.length);
-                System.out.println("I sent a file");
+                bis = new BufferedInputStream(fis);
 
-                fis.close();
-                bis.close();
-                dataInputStream.close();
+                //send file
+                byte[] contents;
+                long fileLength = fileToSend.length();
+                long current = 0;
+                long start = System.nanoTime();
+                String progress = "";
+                while(current!=fileLength){
+                    int size = 10000;
+                    if(fileLength - current >= size)
+                        current += size;
+                    else{
+                        size = (int)(fileLength - current);
+                        current = fileLength;
+                    }
+                    contents = new byte[size];
+                    bis.read(contents, 0, size);
+                    os.write(contents);
+                    if (!progress.equals(Long.toString((current*100)/fileLength))){
+                        progress = Long.toString((current*100)/fileLength);
+                        System.out.println("Sending file ... " + progress + "% complete!");
+                    }
+                }
+                os.flush();
+                dataOutputStream.flush();
+                System.out.println("I sent a file.");
+
+//                dataInputStream.close();
 //                dataOutputStream.close();
                 os.close();
-                is.close();
-//                socket.close();
-                System.out.println("end");
-            }
-            else
-                System.out.println("sth wrong");
+//                is.close();
+                System.out.println("Stream closed.");
+
+            } else
+                System.out.println("Illegal order sent to server.");
 
         } catch (IOException e) {
             e.printStackTrace();
