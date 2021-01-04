@@ -1,8 +1,5 @@
 package sample;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -16,9 +13,8 @@ public class TCP_Server {
     String userHomeFolder = System.getProperty("user.home");
 
     public TCP_Server() throws IOException {
-        Paths.get(userHomeFolder, "Desktop", "TORrent\\TCP\\" + serverPort).toFile().mkdir();
         serverSocket = new ServerSocket(serverPort);
-
+        Paths.get(userHomeFolder, "Desktop", "TORrent\\TCP\\" + serverPort).toFile().mkdir();
         System.out.println("MultiThreaded TCP Server starts work on port " + serverPort + ".");
     }
 

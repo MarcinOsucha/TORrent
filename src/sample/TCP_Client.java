@@ -1,9 +1,7 @@
 package sample;
 
-import javafx.application.Application;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
-import javafx.scene.layout.GridPane;
 
 import java.io.*;
 import java.net.ConnectException;
@@ -16,6 +14,7 @@ public class TCP_Client {
     Socket socket;
     boolean portCorrect = false;
     int progressMaster = 0;
+
     //for send
     public TCP_Client(int portNumber, String s) {
 

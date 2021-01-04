@@ -1,9 +1,5 @@
 package sample;
 
-import javafx.application.Application;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-
 import java.io.*;
 import java.net.Socket;
 import java.security.MessageDigest;
@@ -19,7 +15,6 @@ public class ClientHandler implements Runnable {
         this.serverPort = serverPort;
     }
 
-
     @Override
     public void run() {
         try {
@@ -27,10 +22,11 @@ public class ClientHandler implements Runnable {
             OutputStream os = null;
             DataInputStream dataInputStream = new DataInputStream(is);
             DataOutputStream dataOutputStream = null;
-            //reading transmission type
-            String whatYouDoing = dataInputStream.readUTF();
             BufferedInputStream bis = null;
             BufferedOutputStream bos = null;
+
+            //reading transmission type
+            String whatYouDoing = dataInputStream.readUTF();
 
             if (whatYouDoing.equals("I send")){
                 System.out.println("Client informed me he is sending.");
@@ -76,16 +72,18 @@ public class ClientHandler implements Runnable {
                 fos.close();
                 dataInputStream.close();
                 is.close();
-//                socket.close();
                 System.out.println("Streams closed.");
 
-                String ownHash = checksum(receivedFile);
+                String ownHash = getHash(receivedFile);
                 System.out.println(receivedHash + " - received hash.");
                 System.out.println(ownHash + " - own hash.");
 
+                //I think it's not important to inform server if we downloaded correctly.
 //                OutputStream os = socket.getOutputStream();
 //                DataOutputStream dataOutputStream = new DataOutputStream(os);
 //                dataOutputStream.writeUTF(ownHash);
+                //Just kidding. At the beginning I've had some problems with socket or stream exception
+                //and I've left it like that hehe
                 if (receivedHash.equals(ownHash))
                     System.out.println("File saved successfully!");
                 else
@@ -97,12 +95,11 @@ public class ClientHandler implements Runnable {
 
                 String myFolder = System.getProperty("user.home") + "\\Desktop\\TORrent\\TCP\\" + serverPort;
                 File dir = new File(myFolder);
-
                 String[] fileNames = dir.list();
 
-                dataOutputStream = new DataOutputStream(os);
 
                 //inform client how many files I have
+                dataOutputStream = new DataOutputStream(os);
                 dataOutputStream.writeUTF(Integer.toString(fileNames.length));
 
                 //send file names
@@ -144,10 +141,7 @@ public class ClientHandler implements Runnable {
                 dataOutputStream.flush();
                 System.out.println("I sent a file.");
 
-//                dataInputStream.close();
-//                dataOutputStream.close();
                 os.close();
-//                is.close();
                 System.out.println("Stream closed.");
 
             } else
@@ -158,7 +152,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private static String checksum(File file) throws IOException {
+    private static String getHash(File file) throws IOException {
 
         MessageDigest md = null;
         try {
@@ -175,12 +169,11 @@ public class ClientHandler implements Runnable {
             }
         }
 
-        // bytes to hex
         StringBuilder result = new StringBuilder();
         for (byte b : md.digest()) {
             result.append(String.format("%02x", b));
         }
-        return result.toString();
 
+        return result.toString();
     }
 }

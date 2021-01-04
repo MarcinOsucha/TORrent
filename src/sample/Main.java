@@ -2,7 +2,6 @@ package sample;
 
 import javafx.application.Application;
 import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
@@ -10,9 +9,9 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
@@ -22,24 +21,21 @@ import javafx.util.Callback;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.SocketException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Main extends Application {
 
     private static String actualProtocol = "TCP";
+    private int serverPort = 0;
+    private TCP_Server tcp_server;
 
-    private Scene scene;
     private Button tcpProtocolButton, udpProtocolButton, exitButton;
     private Text portTextTwo;
-    private TextFlow applicationNameFlow, portFlow;
+    private TextFlow portFlow;
     private VBox vBox;
-    GridPane mainGridPane;
+    private GridPane mainGridPane;
 
-//    Thread tcp_server_thread;
-    TCP_Server tcp_server;
-    int serverPort = 0;
 
     @Override
     public void start(Stage primaryStage){
@@ -66,12 +62,22 @@ public class Main extends Application {
         tcpProtocolButton.setStyle(
                 "-fx-background-color: #00ecff;\n" +
                         "-fx-text-fill: #161616;");
-        tcpProtocolButton.setOnAction(e -> changeProtocol("TCP"));
+//        tcpProtocolButton.setOnAction(e -> changeProtocol("TCP"));
         mainGridPane.add(tcpProtocolButton,0,0);
 
         udpProtocolButton = new Button("UDP");
         udpProtocolButton.getStyleClass().add("protocolButton");
-        udpProtocolButton.setOnAction(e -> changeProtocol("UDP"));
+        udpProtocolButton.getStyleClass().add("protocolButton");
+//        udpProtocolButton.setOnAction(e -> changeProtocol("UDP"));
+        udpProtocolButton.setOnAction(e -> {
+            Alert alert = new Alert(
+                    Alert.AlertType.INFORMATION,
+                    "This is upcoming feature. I'll add it soon.",
+                    ButtonType.OK);
+            alert.setTitle("Host " + serverPort);
+            alert.setHeaderText("Information");
+            alert.showAndWait();
+        });
         mainGridPane.add(udpProtocolButton,0,1);
 
         //application name
@@ -79,7 +85,7 @@ public class Main extends Application {
         applicationNameTextOne.setId("namePartOne");
         Text applicationNameTextTwo = new Text("rent");
         applicationNameTextTwo.setId("namePartTwo");
-        applicationNameFlow = new TextFlow();
+        TextFlow applicationNameFlow = new TextFlow();
         applicationNameFlow.getChildren().add(applicationNameTextOne);
         applicationNameFlow.getChildren().add(applicationNameTextTwo);
         applicationNameFlow.setId("applicationNameFlow");
@@ -121,12 +127,13 @@ public class Main extends Application {
         mainGridPane.add(exitButton,1,5);
 
         vBox.getChildren().add(mainGridPane);
-        scene = new Scene(vBox, 800, 600);
+        Scene scene = new Scene(vBox, 700, 550);
+        primaryStage.getIcons().add(new Image("icon.jpg"));
         primaryStage.setScene(scene);
 
-        primaryStage.setTitle("TORrent");
-        primaryStage.setMinHeight(500);
-        primaryStage.setMinWidth(600);
+        primaryStage.setTitle("TORrent - host " + serverPort);
+        primaryStage.setMinHeight(550);
+        primaryStage.setMinWidth(700);
 
         primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
             @Override
@@ -172,6 +179,7 @@ public class Main extends Application {
         }
     }
 
+    //upcoming feature
     private void changeProtocol(String selectedProtocol){
         if ((selectedProtocol.equals("TCP")) && (!actualProtocol.equals(selectedProtocol))){
             startTCPserver();
@@ -207,11 +215,9 @@ public class Main extends Application {
         GridPane sendGridPane = new GridPane();
         sendGridPane.setVgap(20);
         sendGridPane.setHgap(20);
+
         ColumnConstraints col = new ColumnConstraints();
         col.setPercentWidth(50);
-//        col.setHgrow(Priority.ALWAYS) ; // allow column to grow
-//        col.setFillWidth(true);
-
         sendGridPane.getColumnConstraints().addAll(col,col);
 
         TextField receiverPort = new TextField();
@@ -222,11 +228,17 @@ public class Main extends Application {
         Button acceptButton = new Button("Send");
         acceptButton.setStyle("-fx-background-color: #00ecff; -fx-font-size: 25; -fx-text-fill: white;");
         acceptButton.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        sendGridPane.add(acceptButton,1,0,2,2);
+        sendGridPane.add(acceptButton,1,0,1,2);
 
         Label label = new Label("Choose a file You want to send");
         label.setStyle("-fx-text-fill: white; -fx-font-size: 18;");
         sendGridPane.add(label, 0,1);
+
+        TableView<File> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        TableColumn<File, String> column = new TableColumn<>("Name");
+        column.setCellValueFactory(new PropertyValueFactory<>("name"));
+        table.getColumns().add(column);
 
         String pathToFiles;
         if (actualProtocol.equals("TCP")){
@@ -234,23 +246,8 @@ public class Main extends Application {
         } else {
             pathToFiles = "";
         }
-
-        TableView<File> table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-//        table.prefWidthProperty().bind(sendGridPane.widthProperty());
-        TableColumn<File, String> column = new TableColumn<>("Name");
-//        column.prefWidthProperty().bind(table.widthProperty());
-        column.setCellValueFactory(new PropertyValueFactory<File, String>("name"));
-//        column1.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<File, String>, ObservableValue<String>>() {
-//            @Override
-//            public ObservableValue<String> call(TableColumn.CellDataFeatures<File, String> data) {
-//                return new ReadOnlyStringWrapper(data.getValue().getName());
-//            }
-//        });
-        table.getColumns().add(column);
         File dir = new File(pathToFiles);
         File[] files = dir.listFiles();
-
         table.getItems().addAll(files);
         sendGridPane.add(table,0,2,2,1);
 
@@ -277,7 +274,6 @@ public class Main extends Application {
                 alert.showAndWait();
             }
         });
-        sendGridPane.setGridLinesVisible(true);
         vBox.getChildren().add(sendGridPane);
     }
 
@@ -329,6 +325,7 @@ public class Main extends Application {
     private void connetToServer(int serverPort) {
         tcpClientForDownload = new TCP_Client(serverPort);
 
+        //checking if any server is working on this port
         if (tcpClientForDownload.portCorrect){
             String[] namesList = tcpClientForDownload.getFilesList();
             showDownloadTable(namesList);
@@ -396,13 +393,11 @@ public class Main extends Application {
         });
 
         vBox.getChildren().add(downloadTableGridPane);
-
     }
 
     private void sendFile(int typedPort, File selectedFile) {
         if(actualProtocol == "TCP"){
             TCP_Client client = new TCP_Client(typedPort, "Sending");
-//            System.out.println("main: " + client);
             if (client.portCorrect){
                 boolean isFileSent = client.sendFile(selectedFile);
                 if (isFileSent){
@@ -424,34 +419,17 @@ public class Main extends Application {
                 alert.showAndWait();
             }
         } else {
-
+            //place for UDP
         }
     }
 
-//    void showSavedFileAlert(File file){
-//        Alert alert = new Alert(
-//                Alert.AlertType.INFORMATION,
-//                "You just got a file.\n" +
-//                        file.getName(),
-//                ButtonType.OK);
-//        alert.showAndWait();
-//    }
-
     private void exitAction() {
-//        try {
-//            tcp_server.closeServer();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+
+        //maybe I'll find way to correctly close all streams and sockets
+        //also it can be a good idea to delete own folder after exit
+
         System.exit(0);
 
-//        Stage stage = (Stage) exitButton.getScene().getWindow();
-//        stage.close();
-
-        //SOCKET IS NOT BEING CLOSED!!!
-        //tcp_server.closeSocket();
-
-//        tcp_server_thread.interrupt();
     }
 
     public static void main(String[] args) {
